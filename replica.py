@@ -11,12 +11,12 @@ class Replica(object):
     ports_info = None #a map uid-> [ip, ports]
     client_ports_info = None #a map client_id-> [ip, ports]
     request_count = {} # (req_id,value) -> count
-    received_propose_list = {} #req_id -> [client_id, proposor, value, client_request_id]
-    learned_list = {} # req_id -> [value, executed, client_id, client_request_id]
-    waiting_request_list = []
+    received_propose_list = {} #req_id -> [client_id, proposor, command , key , value, client_request_id, executed]
+    learned_list = {} # req_id -> [command, key, value , executed, client_id, client_request_id]
     request_mapping = {} #(client_id, client_request_id) -> req_id
     log_file = None
     skip = False
+    dic = {} #key->value
 
     num_followers = None
     last_exec_req = None
@@ -64,32 +64,37 @@ class Replica(object):
             v = self.ports_info[key]
             send_message(v[0], v[1], m)
 
-    # def send_response_to_client(self , req_id):
-    def send_response_to_client(self , client_id, client_request_id):
-        msg = Message(6, None, None, client_request_id, None, None, None)
-        send_message(self.client_ports_info[client_id][0], self.client_ports_info[client_id][1], encode_message(msg))
-
-    def logging(self, req_id, value, client_id, client_request_id):
+    def logging(self, req_id, command, key, value, client_id, client_request_id):
         if self.last_exec_req + 1 == req_id:
             # logging
             self.last_exec_req += 1
             # with open(self.log_file , 'a') as fid:
             #     fid.write('request %d: %s\n'%(req_id , value))
             #     print 'Replica %d writes message %d to log.' % (self.uid , req_id)
-            self.learned_list[req_id] = [value , True, client_id, client_request_id]
-            if value != "NOOP":
+            self.learned_list[req_id] = [command, key, value , True, client_id, client_request_id]
+            if command != "NOOP":
                 #send logging message to client
                 #TODO: operation related to dict
-                self.send_response_to_client(client_id, client_request_id)
+                if command == 7:
+                    self.dic[key] = value
+                elif command == 9:
+                    if key in self.dic.keys():
+                        del self.dic[key]
+                # send response to master 
+                # TODO: ADD SHARDS
+                self.received_propose_list[req_id][-1] = True
+                msg = Message(mtype = 6, client_request_id = client_request_id, key = key, value = value)
+                send_message(self.client_ports_info[client_id][0], self.client_ports_info[client_id][1], encode_message(msg))
+
             if req_id+1 in self.learned_list and self.learned_list[req_id+1][1] == False:
-                self.logging(req_id+1, self.learned_list[req_id+1][0], self.learned_list[req_id+1][2], self.learned_list[req_id+1][3])
+                self.logging(req_id+1, self.learned_list[req_id+1][0], self.learned_list[req_id+1][1], self.learned_list[req_id+1][2], self.learned_list[req_id+1][4], self.learned_list[req_id+1][5])
         else:
-            self.learned_list[req_id] = [value , False, client_id, client_request_id]
+            self.learned_list[req_id] = [command, key, value , False, client_id, client_request_id]
 
     def beProposor(self):
         self.num_followers = 0
         self.request_mapping = {}
-        msg = Message(0, None, None, None, self.uid, None, None)
+        msg = Message(mtype = 0, sender_id = self.uid)
         self.broadcast_msg(encode_message(msg))
 
     def handle_IAmYourLeader(self, m):
@@ -99,7 +104,7 @@ class Replica(object):
         # send YouAreMyLeader back with message = jsonify received_propose_list
         if m.sender_id >= self.view:
             self.view = m.sender_id
-            msg = Message(1, None, None, None, self.uid, None, self.received_propose_list)
+            msg = Message(mtpye = 1, sender_id = self.uid, received_propose_list = self.received_propose_list)
             send_message(self.ports_info[self.view][0], self.ports_info[self.view][1], encode_message(msg))
 
     def handle_YouAreMyLeader(self, m):
@@ -113,20 +118,22 @@ class Replica(object):
                 self.received_propose_list[key] = x
             elif x[1] > self.received_propose_list[key][1]:
                 self.received_propose_list[key] = x
+            if x[1] == self.received_propose_list[key][1] and x[2] == 8 and x[-1] == True:
+                self.received_propose_list[key][-1] = True
 
         if self.num_followers == self.f + 1:
             #   fill the holes with NOOP
             if len(self.received_propose_list) > 0:
                 for i in range(0,max(self.received_propose_list.keys(), key = int)):
                     if not i in self.received_propose_list:
-                        self.received_propose_list[i] = [-1, self.uid, "NOOP", None]
+                        self.received_propose_list[i] = [-1, self.uid, "NOOP", None , None , None, False]
             #   propose everything in the list
             for key in self.received_propose_list.keys():
                 x = self.received_propose_list[key]
-                msg = Message(2, key, x[0], x[3], self.uid, x[2], None)
+                msg = Message(mtype=2, request_id=key, client_id=x[0], client_request_id=x[-2], sender_id=self.uid, command=x[2], key=x[3],value=x[4])
                 self.broadcast_msg(encode_message(msg))
                 if x[2] != 'NOOP':
-                    self.request_mapping[(x[0] , x[3])] = int(key)
+                    self.request_mapping[(x[0] , x[-2])] = int(key)
             print "replica %d becomes leader!!! view %d" % (self.uid , self.view)
             #   propose everything in waiting_request_list
             while len(self.waiting_request_list) != 0:
@@ -140,6 +147,7 @@ class Replica(object):
                     m.request_id = req_id
                     # change message type to proposeValue
                     m.mtype = 2
+                    # TODO: AddShard
                     # encode message
                     msg = encode_message(m)
                     # broadcast message
@@ -152,16 +160,17 @@ class Replica(object):
         #   update received_propose_list
         #   broadcast AcceptValue(proposorid + req_id + value)
         if m.sender_id >= self.view:
-            # if self.debug: print 'handle_ProposeValue', m.client_id, m.client_request_id
             self.view = m.sender_id
-            # if self.debug: print 'handle_ProposeValue', m.client_id, m.client_request_id
             self.received_propose_list[m.request_id] = [m.client_id, m.sender_id, m.value, m.client_request_id]
-            # if self.debug: print 'handle_ProposeValue', m.client_id, m.client_request_id
             # TODO: if get request, add get value
-            msg = Message(3, m.request_id, m.client_id, m.client_request_id, self.uid, m.value, None)
-            # if self.debug: print 'handle_ProposeValue', m.client_id, m.client_request_id
-            self.broadcast_msg(encode_message(msg))
-            # if self.debug: print 'handle_ProposeValue', m.client_id, m.client_request_id
+            m.type = 3
+            if m.command == 8:
+                if m.key in self.dic.keys():
+                    m.value = self.dic[m.key]
+                else
+                    m.value = 'No key'
+            m.sender_id = self.uid
+            self.broadcast_msg(encode_message(m))
 
 
     def handle_AcceptValue(self, m):
@@ -173,7 +182,7 @@ class Replica(object):
         else:
             self.request_count[p] += 1
         if self.request_count[p] == self.f + 1:
-            self.logging(m.request_id, m.value, m.client_id, m.client_request_id)
+            self.logging(m.request_id, m.command, m.key, m.value, m.client_id, m.client_request_id)
 
     def handle_TimeOut(self, m):
         if self.debug: print 'handle_TimeOut', m
@@ -196,6 +205,7 @@ class Replica(object):
                     # change message type to proposeValue
                     m.mtype = 2
                     # encode message
+                    # TODO: AddShard
                     msg = encode_message(m)
                     # broadcast message
                     self.request_mapping[(m.client_id , m.client_request_id)] = req_id
