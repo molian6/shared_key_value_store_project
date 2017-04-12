@@ -73,12 +73,13 @@ class Replica(object):
         if self.last_exec_req + 1 == req_id:
             # logging
             self.last_exec_req += 1
-            with open(self.log_file , 'a') as fid:
-                fid.write('request %d: %s\n'%(req_id , value))
-                print 'Replica %d writes message %d to log.' % (self.uid , req_id)
+            # with open(self.log_file , 'a') as fid:
+            #     fid.write('request %d: %s\n'%(req_id , value))
+            #     print 'Replica %d writes message %d to log.' % (self.uid , req_id)
             self.learned_list[req_id] = [value , True, client_id, client_request_id]
             if value != "NOOP":
                 #send logging message to client
+                #TODO: operation related to dict
                 self.send_response_to_client(client_id, client_request_id)
             if req_id+1 in self.learned_list and self.learned_list[req_id+1][1] == False:
                 self.logging(req_id+1, self.learned_list[req_id+1][0], self.learned_list[req_id+1][2], self.learned_list[req_id+1][3])
@@ -151,21 +152,22 @@ class Replica(object):
         #   update received_propose_list
         #   broadcast AcceptValue(proposorid + req_id + value)
         if m.sender_id >= self.view:
-            if self.debug: print 'handle_ProposeValue', m.client_id, m.client_request_id
+            # if self.debug: print 'handle_ProposeValue', m.client_id, m.client_request_id
             self.view = m.sender_id
-            if self.debug: print 'handle_ProposeValue', m.client_id, m.client_request_id
+            # if self.debug: print 'handle_ProposeValue', m.client_id, m.client_request_id
             self.received_propose_list[m.request_id] = [m.client_id, m.sender_id, m.value, m.client_request_id]
-            if self.debug: print 'handle_ProposeValue', m.client_id, m.client_request_id
+            # if self.debug: print 'handle_ProposeValue', m.client_id, m.client_request_id
+            # TODO: if get request, add get value
             msg = Message(3, m.request_id, m.client_id, m.client_request_id, self.uid, m.value, None)
-            if self.debug: print 'handle_ProposeValue', m.client_id, m.client_request_id
+            # if self.debug: print 'handle_ProposeValue', m.client_id, m.client_request_id
             self.broadcast_msg(encode_message(msg))
-            if self.debug: print 'handle_ProposeValue', m.client_id, m.client_request_id
+            # if self.debug: print 'handle_ProposeValue', m.client_id, m.client_request_id
 
 
     def handle_AcceptValue(self, m):
         if self.debug: print 'handle_AcceptValue', m.client_id, m.client_request_id
         # if any value reach the majority, do logging
-        p = (m.request_id , m.value)
+        p = (m.request_id, m.command, m.key, m.value)
         if p not in self.request_count:
             self.request_count[p] = 1
         else:
