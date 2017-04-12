@@ -10,5 +10,5 @@
 
 ## Master to shards (use the old message class)
 - put: send the "put(key, value)"" pair as message.value to proposer. Add to replica's dict if it is learned. Shards send acknowledge back when f+1 replica learned
-- get: send (key) as message.value to proposer.....then????
+- get: send "get(key)" as message.value to proposer.....then????
 - delete: send the "put(key, value)"" pair as message.value to proposer. Delete from replica's dict if it is learned. Shards send acknowledge back when f+1 replica learned
