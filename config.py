@@ -13,8 +13,12 @@ class Message():
     TimeOut = 4
     Request = 5 # value
     Logged = 6
+    Save = 7
+    Get = 8
+    Delete = 9
+    AddShard = 10
     def __init__(self, mtype = None, request_id = None, client_id = None, \
-    client_request_id = None, sender_id = None, value = None, received_propose_list = None):
+    client_request_id = None, sender_id = None, value = None, received_propose_list = None , command = None , key = None):
         self.mtype = mtype
         self.request_id = request_id
         self.client_request_id = client_request_id
@@ -22,3 +26,6 @@ class Message():
         self.sender_id = sender_id
         self.value = value
         self.received_propose_list = received_propose_list
+        self.command = command
+        self.key = key
+
