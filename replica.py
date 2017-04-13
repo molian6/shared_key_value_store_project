@@ -76,7 +76,10 @@ class Replica(object):
                 #send logging message to client
                 #TODO: operation related to dict
                 if command == 7:
-                    self.dic[key] = value
+                    if type(key) != list:
+                        key = [key]
+                    for i,k in enumrate(key):
+                        self.dic[k] = value[i]
                 elif command == 9:
                     if key in self.dic.keys():
                         del self.dic[key]

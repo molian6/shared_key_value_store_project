@@ -38,3 +38,4 @@ def decode_message(msg):
 
 def consistent_hashing(value):
 
+    return idx #integer

@@ -18,6 +18,7 @@ class Master(object):
 	val2_64 = math.pow(2,64)
 	shard_next_timeout = []
 	start_timeout = 4
+	#block = [] # set to True to block the new shard
 
 	def __init__(self , shard_port_info , client_port_info , master_port_info):
 		self.shard_port_info = shard_port_info
@@ -27,8 +28,9 @@ class Master(object):
 		for i in range(self.num_shard):
 			self.shard_view.append(0)
 			self.request_queue.append([])
-			self.shard_pos[i] = consistent_hashing(i)
+			self.shard_pos[i] = consistent_hashing(str(i))
 			self.shard_next_timeout.append(self.start_timeout)
+			self.block.append(False)
 
 		self.receive_socket = create_listen_sockets(self.master_ports_info[0], self.master_ports_info[1])
 		while True:
@@ -50,18 +52,34 @@ class Master(object):
     def handle_request(self  , m):
     	if m.command == 10:
     		# addshard
-    		
-    		
+    		self.num_shard += 1
+    		self.shard_view.append(0)
+    		self.request_queue.append([])
+    		self.shard_pos[self.num_shard-1] = consistent_hashing(str(self.num_shard - 1 ))
+    		self.shard_next_timeout.append(self.start_timeout)
+    		# create replicas
+    		# send to old shard
+    		# new save command to the queue of new shard, but do not send.
+    		if num_shard == 1: return
+    		shard_id = self.find_shard(self.shard_pos[self.num_shard-1])
+    		m.key = [ self.shard_pos[shard_id] , self.shard_pos[self.num_shard-1] ] # for old shard, delete keys between m.key[0] and m.key[1]
+    		m.value = num_shard-1 # value record the id of new shard, for the use of save 
+    		msg = Message(mtype = 5 , command = 7 , client_request_id = self.req_id)
+    		self.request_queue[self.num_shard-1].append(msg)
+    		self.req_id += 1
+
     	else:
     		# save get delete
     		pos = consistent_hashing(m.key)
     		shard_id = self.find_shard(pos)
-    		self.request_queue[shard_id].append([m , self.req_id])
-    		self.req_id += 1
-    		if len(self.request_queue[shard_id]) == 1:
-    			v = self.shard_port_info[shard_id][self.shard_view[shard_id]]
-    			send_message(v[0] , v[1] , encode_message(msg))
-    			self.timeout_sheet[shard_id] = time.time() + self.shard_next_timeout[shard_id]
+    	
+    	m.client_request_id = self.req_id
+    	self.request_queue[shard_id].append([m , self.req_id])
+    	self.req_id += 1
+   		if len(self.request_queue[shard_id]) == 1:
+   			v = self.shard_port_info[shard_id][self.shard_view[shard_id]]
+    		send_message(v[0] , v[1] , encode_message(msg))
+    		self.timeout_sheet[shard_id] = time.time() + self.shard_next_timeout[shard_id]
 
     def handle_response(self , m):
 
