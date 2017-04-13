@@ -13,7 +13,8 @@ class Master(object):
 	master_port_info = None
 	#sent_request = {} # req_id , received
 	req_id = 0
-	request_queue = [] # shard_id -> [req_id]
+	request_queue = {} # shard_id -> [req1, req2]
+	req_to_shard_map = {}
 	shard_pos = {}
 	val2_64 = math.pow(2,64)
 	shard_next_timeout = []
@@ -26,7 +27,7 @@ class Master(object):
 		self.num_shard = len(self.shard_port_info)
 		for i in range(self.num_shard):
 			self.shard_view.append(0)
-			self.request_queue.append([])
+			self.request_queue[i] = []
 			self.shard_pos[i] = consistent_hashing(i)
 			self.shard_next_timeout.append(self.start_timeout)
 
@@ -50,8 +51,8 @@ class Master(object):
     def handle_request(self  , m):
     	if m.command == 10:
     		# addshard
-    		
-    		
+
+
     	else:
     		# save get delete
     		pos = consistent_hashing(m.key)
@@ -64,8 +65,19 @@ class Master(object):
     			self.timeout_sheet[shard_id] = time.time() + self.shard_next_timeout[shard_id]
 
     def handle_response(self , m):
-
-
+		req_id = m.client_request_id
+		shard_id = self.req_to_shard_map[req_id]
+		if len(self.req_to_shard_map[req_id]) > 0 and req_id == self.request_queue[shard_id][1]:
+			self.request_queue[shard_id].pop(0)
+		if len(self.request_queue[shard_id]) > 0:
+			new_msg = self.request_queue[shard_id][0]
+			if m.mtype == 10: #addshard
+				# TODO
+				pass
+			else: #put get delete
+				v = self.shard_port_info[shard_id][self.shard_view[shard_id]]
+				send_message(v[0], v[1], encode_message(new_msg))
+				self.timeout_sheet[shard_id] = time.time() + self.shard_next_timeout[shard_id]
 
     def handle_timeout(self , shard_id):
 
@@ -97,4 +109,3 @@ class Master(object):
 		for key in self.shard_port_info[shard_id].keys():
 			v = self.shard_port_info[shard_id][key]
 			send_message(v[0], v[1], m)
-
