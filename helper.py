@@ -35,3 +35,6 @@ def decode_message(msg):
     m = Message(msg_dict["command"], msg_dict["key"], msg_dict["mtype"], msg_dict["request_id"], msg_dict["client_id"], msg_dict["client_request_id"], msg_dict["sender_id"], msg_dict["value"], msg_dict["received_propose_list"])
     return m
 
+
+def consistent_hashing(value):
+
