@@ -9,7 +9,7 @@ class Replica(object):
     f = None
     view = None
     ports_info = None #a map uid-> [ip, ports]
-    client_ports_info = None #a map client_id-> [ip, ports]
+    master_port_info = None #[ip, ports]
     request_count = {} # (req_id,command,key,value) -> count
     received_propose_list = {} #req_id -> [client_id, proposor, command , key , value, client_request_id, executed]
     learned_list = {} # req_id -> [command, key, value , executed, client_id, client_request_id]
@@ -21,11 +21,11 @@ class Replica(object):
     num_followers = None
     last_exec_req = None
 
-    def __init__(self, f, uid, ports_info, client_ports_info, debug, skip):
+    def __init__(self, f, uid, ports_info, master_port_info, debug, skip):
         self.uid = uid
         self.f = f
         self.ports_info = ports_info
-        self.client_ports_info = client_ports_info
+        self.master_port_info = master_port_info
         self.last_exec_req = -1
         self.receive_socket = create_listen_sockets(self.ports_info[self.uid][0], self.ports_info[self.uid][1])
         self.view = -1
@@ -99,8 +99,8 @@ class Replica(object):
                     value = del_value
 
                 self.received_propose_list[req_id][-1] = True
-                msg = Message(mtype = 6, client_request_id = client_request_id, key = key, value = value , command = command)
-                send_message(self.client_ports_info[client_id][0], self.client_ports_info[client_id][1], encode_message(msg))
+                msg = Message(mtype = 6, client_id = client_id, client_request_id = client_request_id, key = key, value = value , command = command)
+                send_message(self.master_port_info[0], self.master_port_info[1], encode_message(msg))
 
             if req_id+1 in self.learned_list and self.learned_list[req_id+1][1] == False:
                 self.logging(req_id+1, self.learned_list[req_id+1][0], self.learned_list[req_id+1][1], self.learned_list[req_id+1][2], self.learned_list[req_id+1][4], self.learned_list[req_id+1][5])
@@ -218,10 +218,10 @@ class Replica(object):
                     self.request_mapping[(m.client_id , m.client_request_id)] = req_id
                     if self.skip:
                         if req_id % 10 == 3:
-                            return 
+                            return
                     self.broadcast_msg(msg)
                     # add req_id to mapping list
-                    
+
             else:
                 # waitting for followers, add request to waitlist
                 self.waiting_request_list.append(m)
