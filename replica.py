@@ -10,7 +10,7 @@ class Replica(object):
     view = None
     ports_info = None #a map uid-> [ip, ports]
     client_ports_info = None #a map client_id-> [ip, ports]
-    request_count = {} # (req_id,value) -> count
+    request_count = {} # (req_id,command,key,value) -> count
     received_propose_list = {} #req_id -> [client_id, proposor, command , key , value, client_request_id, executed]
     learned_list = {} # req_id -> [command, key, value , executed, client_id, client_request_id]
     request_mapping = {} #(client_id, client_request_id) -> req_id
@@ -74,7 +74,6 @@ class Replica(object):
             self.learned_list[req_id] = [command, key, value , True, client_id, client_request_id]
             if command != "NOOP":
                 #send logging message to client
-                #TODO: operation related to dict
                 if command == 7:
                     if type(key) != list:
                         key = [key]
@@ -164,7 +163,6 @@ class Replica(object):
                     m.request_id = req_id
                     # change message type to proposeValue
                     m.mtype = 2
-                    # TODO: AddShard
                     # encode message
                     msg = encode_message(m)
                     # broadcast message
@@ -179,16 +177,9 @@ class Replica(object):
         if m.sender_id >= self.view:
             self.view = m.sender_id
             self.received_propose_list[m.request_id] = [m.client_id, m.sender_id, m.value, m.client_request_id]
-            # TODO: if get request, add get value
             m.type = 3
-            if m.command == 8:
-                if m.key in self.dic.keys():
-                    m.value = self.dic[m.key]
-                else
-                    m.value = 'No key'
             m.sender_id = self.uid
             self.broadcast_msg(encode_message(m))
-
 
     def handle_AcceptValue(self, m):
         if self.debug: print 'handle_AcceptValue', m.client_id, m.client_request_id
@@ -222,7 +213,6 @@ class Replica(object):
                     # change message type to proposeValue
                     m.mtype = 2
                     # encode message
-                    # TODO: AddShard
                     msg = encode_message(m)
                     # broadcast message
                     self.request_mapping[(m.client_id , m.client_request_id)] = req_id
