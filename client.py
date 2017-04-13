@@ -2,7 +2,7 @@ import time, socket
 from datetime import datetime, timedelta
 from helper import *
 from config import Message
-from threading import Thread
+# from threading import Thread
 # use for sending messages by script.
 # use for testing purpose
 class Client:
@@ -27,10 +27,12 @@ class Client:
         # self.view = 0
         # self.timeout = 2
         self.e = e
+        self.client_listen_socket = create_listen_sockets(self.my_ip, self.my_port)
+
         print 'Client %d starts running at %s' % (self.client_id , time.ctime(int(time.time())))
 
-        response_listen_thread = Thread(target=self.response_listen)
-        response_listen_thread.start()
+        # response_listen_thread = Thread(target=self.response_listen)
+        # response_listen_thread.start()
 
         while True:
             e.wait()
@@ -60,20 +62,25 @@ class Client:
         # encoded_msg = encode_message(msg)
         # self.broadcast_msg(encoded_msg)
         print 'Client %d send message %d' % (self.client_id , self.client_request_id)
+        self.response_listen()
 
     def response_listen():
-        self.client_listen_socket = create_listen_sockets(self.my_ip, self.my_port)
         while True:
-            all_data = self.client_listen_socket.recv(65535)
-            m = decode_message(all_data)
-            if m.command == 7:
-                print 'put(%s, %s) successfully!' % (m.key, m.value)
-            if m.command == 8:
-                print 'get(%s) successfully, value is %s!' % (m.key, m.value)
-            if m.command == 9:
-                print 'delete(%s) successfully!' % (m.key)
-            if m.command == 7:
-                print 'addShard successfully!'
+            try:
+                all_data = self.client_listen_socket.recv(65535)
+                m = decode_message(all_data)
+                if m.command == 7:
+                    print 'put(%s, %s) successfully!' % (m.key, m.value)
+                if m.command == 8:
+                    print 'get(%s) successfully, value is %s!' % (m.key, m.value)
+                if m.command == 9:
+                    print 'delete(%s) successfully!' % (m.key)
+                if m.command == 7:
+                    print 'addShard successfully!'
+                return
+            except socket.timeout:
+                print 'client %d request %d timeout' % (self.client_id, self.client_request_id)
+                return
     #     nextTimeout = self.timeout
     #     while True:
     #         self.client_listen_socket.settimeout(nextTimeout)
