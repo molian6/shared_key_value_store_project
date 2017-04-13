@@ -80,13 +80,27 @@ class Replica(object):
                         key = [key]
                     for i,k in enumrate(key):
                         self.dic[k] = value[i]
+                elif command == 8:
+                    value = self.dic[key]
                 elif command == 9:
                     if key in self.dic.keys():
                         del self.dic[key]
-                # send response to master 
-                # TODO: ADD SHARDS
+                elif command == 10:
+                    del_val = []
+                    del_key = []
+                    for k in self.dic.keys():
+                        pos = consistent_hashing(k)
+                        dis_old = distance(pos , key[0])
+                        dis_new = distance(pos , key[1])
+                        if dis_new < dis_old:
+                            del_key.append(k)
+                            del_val.append(self.dic[k])
+                            del self.dic[k]
+                    key = del_key
+                    value = del_value
+
                 self.received_propose_list[req_id][-1] = True
-                msg = Message(mtype = 6, client_request_id = client_request_id, key = key, value = value)
+                msg = Message(mtype = 6, client_request_id = client_request_id, key = key, value = value , command = command)
                 send_message(self.client_ports_info[client_id][0], self.client_ports_info[client_id][1], encode_message(msg))
 
             if req_id+1 in self.learned_list and self.learned_list[req_id+1][1] == False:
@@ -189,7 +203,7 @@ class Replica(object):
 
     def handle_TimeOut(self, m):
         if self.debug: print 'handle_TimeOut', m
-        if self.view < m.sender_id: #ugli implementation sender_id here means client view
+        if self.view < m.sender_id: #ugly implementation sender_id here means client view
             self.view = m.sender_id
             if (self.view == self.uid):
                 self.beProposor()

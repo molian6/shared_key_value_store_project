@@ -4,6 +4,9 @@ import json
 import time
 import random
 from config import Message
+import math
+
+max_ = math.pow(2 , 64)
 
 def send_message(host, port_number, m):
     s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
@@ -35,6 +38,13 @@ def decode_message(msg):
     m = Message(msg_dict["command"], msg_dict["key"], msg_dict["mtype"], msg_dict["request_id"], msg_dict["client_id"], msg_dict["client_request_id"], msg_dict["sender_id"], msg_dict["value"], msg_dict["received_propose_list"])
     return m
 
+
+def distance(a , b):
+    if b <= a:
+        dis = a - b
+    else:
+        dis = max_ + a - b
+    return dis
 
 def consistent_hashing(value):
 

@@ -23,6 +23,9 @@ class Master(object):
 
 	def __init__(self , shard_port_info , client_port_info , master_port_info):
 		self.shard_port_info = shard_port_info
+		if shard_port_info == None:
+			# if there is no shard, add a new shard
+			self.handle_request(Message(mtype=5 , command = 10))
 		self.client_port_info = client_port_info
 		self.master_port_info = master_port_info
 		self.num_shard = len(self.shard_port_info)
@@ -63,8 +66,8 @@ class Master(object):
     		# new save command to the queue of new shard, but do not send.
     		if num_shard == 1: return
     		shard_id = self.find_shard(self.shard_pos[self.num_shard-1])
-    		m.key = [ self.shard_pos[shard_id] , self.shard_pos[self.num_shard-1] ] # for old shard, delete keys between m.key[0] and m.key[1]
-    		m.value = num_shard-1 # value record the id of new shard, for the use of save
+    		m.key = [self.shard_pos[shard_id] , self.shard_pos[self.num_shard-1] ]# for old shard, delete keys between m.key[0] and m.key[1]
+    		m.client_id = num_shard-1 # client_id record the id of new shard, for the use of save
     		msg = Message(mtype = 5 , command = 7 , client_request_id = self.req_id)
     		self.request_queue[self.num_shard-1].append(msg)
     		self.req_id += 1
@@ -78,28 +81,41 @@ class Master(object):
     	self.request_queue[shard_id].append([m , self.req_id])
     	self.req_id += 1
    		if len(self.request_queue[shard_id]) == 1:
-   			v = self.shard_port_info[shard_id][self.shard_view[shard_id]]
-    		send_message(v[0] , v[1] , encode_message(msg))
-    		self.timeout_sheet[shard_id] = time.time() + self.shard_next_timeout[shard_id]
+   			send_request(shard_id , m)
 
     def handle_response(self , m):
 		req_id = m.client_request_id
 		shard_id = self.req_to_shard_map[req_id]
-		if len(self.req_to_shard_map[req_id]) > 0 and req_id == self.request_queue[shard_id][1]:
+		if len(self.request_queue[shard_id]) > 0 and req_id == self.request_queue[shard_id][0][1]:
 			self.request_queue[shard_id].pop(0)
+			if m.command != 10:
+				v = self.client_port_info[m.client_id]
+				send_message(v[0] , v[1] , encode_message(m))
+			else:
+				# send save command to new shard
+				print ('get values for addshard %d' % (m.client_id))
+				new_msg = self.request_queue[m.client_id][0]
+				new_msg.key = m.key
+				new_msg.value = m.value
+				self.send_request(m.client_id , new_msg)
+
 		if len(self.request_queue[shard_id]) > 0:
 			new_msg = self.request_queue[shard_id][0]
-			if m.mtype == 10: #addshard
-				# TODO
-				pass
-			else: #put get delete
-				v = self.shard_port_info[shard_id][self.shard_view[shard_id]]
-				send_message(v[0], v[1], encode_message(new_msg))
-				self.timeout_sheet[shard_id] = time.time() + self.shard_next_timeout[shard_id]
+			self.send_request(shard_id , new_msg)
+
+	def send_request(self , shard_id , m):
+		v = self.shard_port_info[shard_id][self.shard_view[shard_id]]
+		send_message(v[0], v[1], encode_message(m))
+		self.timeout_sheet[shard_id] = time.time() + self.shard_next_timeout[shard_id]
 
     def handle_timeout(self , shard_id):
-
-
+    	self.shard_next_timeout[shard_id] *= 2
+    	self.shard_view[shard_id] += 1
+    	m = Message(mtype = 4 , sender_id = self.shard_view[shard_id])
+    	self.broadcast(shard_id , m)
+    	time.sleep(0.5)
+    	m = self.request_queue[shard_id][0]
+    	self.send_request(shard_id , m)
 
     def getTimeout(self):
     	if len(self.timeout_sheet) == 0:
@@ -114,10 +130,7 @@ class Master(object):
 		best = -1
 		best_dis = self.val2_64
 		for i in range(self.num_shard):
-			if self.shard_pos[i] < val:
-				dis = val - self.shard_pos[i]
-			else:
-				dis = self.val2_64 + val - self.shard_pos[i]
+			dis = distance(val , self.shard_pos[i])
 			if dis < best_dis:
 				best = i
 				best_dis = dis
