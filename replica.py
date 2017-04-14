@@ -81,8 +81,10 @@ class Replica(object):
                 if command == 7:
                     if type(key) != list:
                         key = [key]
-                    for i,k in enumrate(key):
+                    print key
+                    for i,k in enumerate(key):
                         self.dic[k] = value[i]
+                    print 'replica %d execute %s %s %s' % (self.uid , command , key , value)
                 elif command == 8:
                     value = self.dic[key]
                 elif command == 9:
@@ -182,7 +184,7 @@ class Replica(object):
         if m.sender_id >= self.view:
             self.view = m.sender_id
             self.received_propose_list[m.request_id] = [m.client_id, m.sender_id, m.value, m.client_request_id]
-            m.type = 3
+            m.mtype = 3
             m.sender_id = self.uid
             self.broadcast_msg(encode_message(m))
 

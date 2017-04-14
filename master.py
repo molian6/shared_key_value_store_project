@@ -38,19 +38,20 @@ class Master(object):
 		self.receive_socket = create_listen_sockets(self.master_port_info[0], self.master_port_info[1])
 		while True:
 			timeout_shard , nextTimeout = self.getTimeout()
+			print timeout_shard , nextTimeout
 			self.receive_socket.settimeout(nextTimeout)
 			try:
 				all_data = self.receive_socket.recv(65535)
 				msg = all_data
 		   		self.handle_message(decode_message(msg))
-		   	except:
+		   	except socket.timeout:
 		   		self.handle_timeout(timeout_shard)
 
 	def handle_message(self , m):
-		if m.type == 5:
-			self.handle_request(self , m)
-		if m.type == 6:
-			self.handle_response(self , m)
+		if m.mtype == 5:
+			self.handle_request(m)
+		if m.mtype == 6:
+			self.handle_response(m)
 
 	def handle_request(self  , m):
 		if m.command == 10:
@@ -75,12 +76,12 @@ class Master(object):
 			# save get delete
 			pos = consistent_hashing(m.key)
 			shard_id = self.find_shard(pos)
-
+		print 'handle request: ', shard_id, m.command, m.key, m.value
 		m.client_request_id = self.req_id
 		self.request_queue[shard_id].append([m , self.req_id])
 		self.req_id += 1
    		if len(self.request_queue[shard_id]) == 1:
-   			send_request(shard_id , m)
+   			self.send_request(shard_id , m)
 
 	def handle_response(self , m):
 		req_id = m.client_request_id
