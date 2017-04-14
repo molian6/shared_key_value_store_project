@@ -81,15 +81,19 @@ class Replica(object):
                 if command == 7:
                     if type(key) != list:
                         key = [key]
-                    print key
                     for i,k in enumerate(key):
                         self.dic[k] = value[i]
                     print 'replica %d execute %s %s %s' % (self.uid , command , key , value)
                 elif command == 8:
-                    value = self.dic[key]
+                    if key in self.dic.keys():
+                        value = self.dic[key]
+                    else:
+                        value = 'get error: key %s does not exist' % (key)
                 elif command == 9:
                     if key in self.dic.keys():
                         del self.dic[key]
+                    else:
+                        value = 'delete error: key %s does not exist' % (key)
                 elif command == 10:
                     del_val = []
                     del_key = []
@@ -103,7 +107,7 @@ class Replica(object):
                             del self.dic[k]
                     key = del_key
                     value = del_value
-
+                print 'logging', client_request_id
                 self.received_propose_list[req_id][-1] = True
                 msg = Message(mtype = 6, client_id = client_id, client_request_id = client_request_id, key = key, value = value , command = command)
                 send_message(self.master_port_info[0], self.master_port_info[1], encode_message(msg))
@@ -183,7 +187,7 @@ class Replica(object):
         #   broadcast AcceptValue(proposorid + req_id + value)
         if m.sender_id >= self.view:
             self.view = m.sender_id
-            self.received_propose_list[m.request_id] = [m.client_id, m.sender_id, m.value, m.client_request_id]
+            self.received_propose_list[m.request_id] = [m.client_id, m.sender_id, m.command , m.key , m.value, m.client_request_id , False]
             m.mtype = 3
             m.sender_id = self.uid
             self.broadcast_msg(encode_message(m))
@@ -192,6 +196,8 @@ class Replica(object):
         if self.debug: print 'handle_AcceptValue', m.client_id, m.client_request_id
         # if any value reach the majority, do logging
         p = (m.request_id, m.command, m.key, m.value)
+        print encode_message(m)
+        print p
         if p not in self.request_count:
             self.request_count[p] = 1
         else:

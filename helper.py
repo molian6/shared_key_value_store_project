@@ -59,6 +59,6 @@ def distance(a , b):
 
 def consistent_hashing(val):
     # string to int
-    val = val+str(time.time())
+    val = val#+str(time.time())
     idx = int(hashlib.sha1(val).hexdigest(), 16) % (max_)
     return idx #integer

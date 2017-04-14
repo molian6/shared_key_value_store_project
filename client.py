@@ -27,6 +27,8 @@ class Client:
 
     def send_request(self , command):
         print command
+        key = None
+        value = None
         command = command.split(' ')
         command_type = command[0]
         if len(command) > 1:
@@ -35,12 +37,15 @@ class Client:
             value = command[2]
         if command_type == 'put':
             command = 7
-        if command_type == 'get':
+        elif command_type == 'get':
             command = 8
-        if command_type == 'delete':
+        elif command_type == 'delete':
             command = 9
-        if command_type == 'addshard':
+        elif command_type == 'addshard':
             command = 10
+        else:
+            print 'illegal command'
+            return
         self.client_send_message(command, key, value)
 
     def client_send_message(self, command, key, value):
@@ -60,6 +65,9 @@ class Client:
             if m.command == 8:
                 print 'get(%s) successfully, value is %s!' % (m.key, m.value)
             if m.command == 9:
-                print 'delete(%s) successfully!' % (m.key)
-            if m.command == 7:
+                if m.value == None:
+                    print 'delete(%s) successfully!' % (m.key)
+                else:
+                    print m.value
+            if m.command == 10:
                 print 'addShard successfully!'

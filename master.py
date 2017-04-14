@@ -54,6 +54,7 @@ class Master(object):
 			self.handle_response(m)
 
 	def handle_request(self  , m):
+		print 'handle request: ', m.command, m.key, m.value
 		if m.command == 10:
 			# addshard
 			self.num_shard += 1
@@ -64,26 +65,29 @@ class Master(object):
 			# create replicas
 			# send to old shard
 			# new save command to the queue of new shard, but do not send.
-			if num_shard == 1: return
+			if self.num_shard == 1: return
 			shard_id = self.find_shard(self.shard_pos[self.num_shard-1])
 			m.key = [self.shard_pos[shard_id] , self.shard_pos[self.num_shard-1] ]# for old shard, delete keys between m.key[0] and m.key[1]
-			m.client_id = num_shard-1 # client_id record the id of new shard, for the use of save
+			m.client_id = self.num_shard-1 # client_id record the id of new shard, for the use of save
 			msg = Message(mtype = 5 , command = 7 , client_request_id = self.req_id)
 			self.request_queue[self.num_shard-1].append(msg)
+			self.req_to_shard_map[self.req_id] = self.num_shard-1
 			self.req_id += 1
 
 		else:
 			# save get delete
 			pos = consistent_hashing(m.key)
 			shard_id = self.find_shard(pos)
-		print 'handle request: ', shard_id, m.command, m.key, m.value
+
 		m.client_request_id = self.req_id
 		self.request_queue[shard_id].append([m , self.req_id])
+		self.req_to_shard_map[self.req_id] = shard_id
 		self.req_id += 1
    		if len(self.request_queue[shard_id]) == 1:
    			self.send_request(shard_id , m)
 
 	def handle_response(self , m):
+		print 'handle response', m.client_request_id,  m.command, m.key , m.value 
 		req_id = m.client_request_id
 		shard_id = self.req_to_shard_map[req_id]
 		if len(self.request_queue[shard_id]) > 0 and req_id == self.request_queue[shard_id][0][1]:
@@ -98,10 +102,11 @@ class Master(object):
 				new_msg.key = m.key
 				new_msg.value = m.value
 				self.send_request(m.client_id , new_msg)
+			del self.timeout_sheet[shard_id]
+			if len(self.request_queue[shard_id]) > 0:
+				new_msg = self.request_queue[shard_id][0]
+				self.send_request(shard_id , new_msg)
 
-		if len(self.request_queue[shard_id]) > 0:
-			new_msg = self.request_queue[shard_id][0]
-			self.send_request(shard_id , new_msg)
 
 	def send_request(self , shard_id , m):
 		v = self.shard_port_info[shard_id][self.shard_view[shard_id]]
