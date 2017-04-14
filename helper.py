@@ -6,7 +6,7 @@ import random
 from config import Message
 import math
 
-max_ = math.pow(2 , 64)
+max_ = long(math.pow(2 , 64))
 
 def send_message(host, port_number, m):
     s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
@@ -46,6 +46,8 @@ def distance(a , b):
         dis = max_ + a - b
     return dis
 
-def consistent_hashing(value):
-
+def consistent_hashing(val):
+    # string to int
+    val = val+str(time.time())
+    idx = int(hashlib.sha1(val).hexdigest(), 16) % (max_)
     return idx #integer

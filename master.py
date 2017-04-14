@@ -13,11 +13,10 @@ class Master(object):
 	master_port_info = None
 	#sent_request = {} # req_id , received
 	req_id = 0
-	request_queue = {} # shard_id -> [req1, req2] req1 here is [req_id, m]
+	request_queue = {} # shard_id -> [req1, req2]
 	req_to_shard_map = {}
-	# reqID_to_client = {} #req_id -> client_id
 	shard_pos = {}
-	val2_64 = math.pow(2,64)
+	val2_64 = long(math.pow(2,64))
 	shard_next_timeout = []
 	start_timeout = 4
 	#block = [] # set to True to block the new shard
@@ -37,7 +36,7 @@ class Master(object):
 			self.shard_next_timeout.append(self.start_timeout)
 			self.block.append(False)
 
-		self.receive_socket = create_listen_sockets(self.master_port_info[0], self.master_port_info[1])
+		self.receive_socket = create_listen_sockets(self.master_ports_info[0], self.master_ports_info[1])
 		while True:
 			timeout_shard , nextTimeout = self.getTimeout()
 			self.receive_socket.settimeout(nextTimeout)
@@ -54,11 +53,8 @@ class Master(object):
     	if m.type == 6:
     		self.handle_response(self , m)
 
-    def handle_request(self, m):
-		# # record which request relates to which client
-		# self.reqID_to_client[self.req_id] = m.client_id
-
-		if m.command == 10:
+    def handle_request(self  , m):
+    	if m.command == 10:
     		# addshard
     		self.num_shard += 1
     		self.shard_view.append(0)
@@ -73,7 +69,7 @@ class Master(object):
     		m.key = [self.shard_pos[shard_id] , self.shard_pos[self.num_shard-1] ]# for old shard, delete keys between m.key[0] and m.key[1]
     		m.client_id = num_shard-1 # client_id record the id of new shard, for the use of save
     		msg = Message(mtype = 5 , command = 7 , client_request_id = self.req_id)
-    		self.request_queue[self.num_shard-1].append([self.req_id, msg])
+    		self.request_queue[self.num_shard-1].append(msg)
     		self.req_id += 1
 
     	else:
@@ -82,7 +78,7 @@ class Master(object):
     		shard_id = self.find_shard(pos)
 
     	m.client_request_id = self.req_id
-    	self.request_queue[shard_id].append([self.req_id, m])
+    	self.request_queue[shard_id].append([m , self.req_id])
     	self.req_id += 1
    		if len(self.request_queue[shard_id]) == 1:
    			send_request(shard_id , m)
@@ -90,7 +86,7 @@ class Master(object):
     def handle_response(self , m):
 		req_id = m.client_request_id
 		shard_id = self.req_to_shard_map[req_id]
-		if len(self.request_queue[shard_id]) > 0 and req_id == self.request_queue[shard_id][0][0]:
+		if len(self.request_queue[shard_id]) > 0 and req_id == self.request_queue[shard_id][0][1]:
 			self.request_queue[shard_id].pop(0)
 			if m.command != 10:
 				v = self.client_port_info[m.client_id]
@@ -98,13 +94,13 @@ class Master(object):
 			else:
 				# send save command to new shard
 				print ('get values for addshard %d' % (m.client_id))
-				new_msg = self.request_queue[m.client_id][1]
+				new_msg = self.request_queue[m.client_id][0]
 				new_msg.key = m.key
 				new_msg.value = m.value
 				self.send_request(m.client_id , new_msg)
 
 		if len(self.request_queue[shard_id]) > 0:
-			new_msg = self.request_queue[shard_id][1]
+			new_msg = self.request_queue[shard_id][0]
 			self.send_request(shard_id , new_msg)
 
 	def send_request(self , shard_id , m):
@@ -118,7 +114,7 @@ class Master(object):
     	m = Message(mtype = 4 , sender_id = self.shard_view[shard_id])
     	self.broadcast(shard_id , m)
     	time.sleep(0.5)
-    	m = self.request_queue[shard_id][1]
+    	m = self.request_queue[shard_id][0]
     	self.send_request(shard_id , m)
 
     def getTimeout(self):

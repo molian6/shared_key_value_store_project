@@ -46,6 +46,7 @@ class Client:
                 command = 9
             if command_type ==4:
                 command = 10
+
             self.client_send_message(command, key, value)
             e.clear()
 
