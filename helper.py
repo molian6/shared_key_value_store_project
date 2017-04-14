@@ -5,6 +5,7 @@ import time
 import random
 from config import Message
 import math
+import hashlib
 
 max_ = long(math.pow(2 , 64))
 
@@ -27,7 +28,7 @@ def encode_message(m):
         "client_request_id": m.client_request_id,
         "sender_id": m.sender_id,
         "value": m.value,
-        "received_propose_list": m.received_propose_list
+        "received_propose_list": m.received_propose_list,
         "command": m.command,
         "key": m.key
     }
@@ -35,7 +36,17 @@ def encode_message(m):
 
 def decode_message(msg):
     msg_dict = yaml.safe_load(msg)
-    m = Message(msg_dict["command"], msg_dict["key"], msg_dict["mtype"], msg_dict["request_id"], msg_dict["client_id"], msg_dict["client_request_id"], msg_dict["sender_id"], msg_dict["value"], msg_dict["received_propose_list"])
+    m = Message(
+        command = msg_dict["command"], 
+        key = msg_dict["key"], 
+        mtype = msg_dict["mtype"], 
+        request_id = msg_dict["request_id"],
+        client_id = msg_dict["client_id"], 
+        client_request_id = msg_dict["client_request_id"], 
+        sender_id = msg_dict["sender_id"], 
+        value = msg_dict["value"], 
+        received_propose_list = msg_dict["received_propose_list"]
+    )
     return m
 
 

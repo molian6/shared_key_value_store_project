@@ -15,6 +15,7 @@ class Replica(object):
     learned_list = {} # req_id -> [command, key, value , executed, client_id, client_request_id]
     request_mapping = {} #(client_id, client_request_id) -> req_id
     log_file = None
+    waiting_request_list = []
     skip = False
     dic = {} #key->value
 
@@ -25,6 +26,7 @@ class Replica(object):
         self.uid = uid
         self.f = f
         self.ports_info = ports_info
+        print self.ports_info
         self.master_port_info = master_port_info
         self.last_exec_req = -1
         self.receive_socket = create_listen_sockets(self.ports_info[self.uid][0], self.ports_info[self.uid][1])
@@ -41,8 +43,10 @@ class Replica(object):
             self.beProposor()
 
         while True:
+            print 'wait message'
             all_data = self.receive_socket.recv(65535)
             msg = all_data
+            print all_data
             self.handle_message(decode_message(msg))
 
     def handle_message(self, m):
@@ -112,6 +116,7 @@ class Replica(object):
         self.request_mapping = {}
         msg = Message(mtype = 0, sender_id = self.uid)
         self.broadcast_msg(encode_message(msg))
+        print 'send I am your leader %d' % (self.uid)
 
     def handle_IAmYourLeader(self, m):
         if self.debug:
@@ -120,7 +125,7 @@ class Replica(object):
         # send YouAreMyLeader back with message = jsonify received_propose_list
         if m.sender_id >= self.view:
             self.view = m.sender_id
-            msg = Message(mtpye = 1, sender_id = self.uid, received_propose_list = self.received_propose_list)
+            msg = Message(mtype = 1, sender_id = self.uid, received_propose_list = self.received_propose_list)
             send_message(self.ports_info[self.view][0], self.ports_info[self.view][1], encode_message(msg))
 
     def handle_YouAreMyLeader(self, m):
