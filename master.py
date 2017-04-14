@@ -9,7 +9,7 @@ class Master(object):
 	num_shard = None
 	shard_view = []
 	client_port_info = None
-	shard_port_info = None
+	shard_port_info = None #[shard_id][replica_id]->[ip, port]
 	master_port_info = None
 	#sent_request = {} # req_id , received
 	req_id = 0
