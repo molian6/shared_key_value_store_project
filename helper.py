@@ -62,3 +62,12 @@ def consistent_hashing(val):
     val = val#+str(time.time())
     idx = int(hashlib.sha1(val).hexdigest(), 16) % (max_)
     return idx #integer
+
+def read_ports_info(filename, n):
+	s = {}
+	with open(filename) as f:
+		for i in range(n):
+			l = f.readline()
+			info = l.split(' ')
+			s[int(info[0])] = [info[1], int(info[2])]
+	return s

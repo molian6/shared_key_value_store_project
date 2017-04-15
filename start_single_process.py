@@ -2,6 +2,7 @@ import config, replica, os, shutil, client, master
 import time, multiprocessing
 import random
 import sys
+from helper import *
 
 # Configure command line options
 DEFAULT_NUM_FAILURES = 1
@@ -15,15 +16,6 @@ MASTER_PORTS_INFO = "master_ports.txt"
 START_TYPE = 1
 
 CONTEXT_SETTINGS = dict(help_option_names=['-h', '--help'])
-
-def read_ports_info(filename, n):
-	s = {}
-	with open(filename) as f:
-		for i in range(n):
-			l = f.readline()
-			info = l.split(' ')
-			s[int(info[0])] = [info[1], int(info[2])]
-	return s
 
 def find_args(cmd):
 	for i,x in enumerate(sys.argv):
@@ -64,7 +56,7 @@ if __name__=="__main__":
 		shard_port_info = []
 		for i in range(DEFAULT_NUM_SHARDS):
 			shard_port_info.append(read_ports_info('server_ports_%d.txt' % (i) , 2*DEFAULT_NUM_FAILURES+1))
-		p = multiprocessing.Process(target=master.Master, args = (shard_port_info , client_ports_info , master_ports_info[0])) #f, ID, port_info
+		p = multiprocessing.Process(target=master.Master, args = (shard_port_info , client_ports_info , master_ports_info[0], DEFAULT_NUM_FAILURES)) #f, ID, port_info
 		print "start master"
 		p.start()
 
