@@ -1,5 +1,5 @@
 import socket
-import ruamel.yaml as yaml
+import ruamel_yaml as yaml
 import json
 import time
 import random
@@ -37,14 +37,14 @@ def encode_message(m):
 def decode_message(msg):
     msg_dict = yaml.safe_load(msg)
     m = Message(
-        command = msg_dict["command"], 
-        key = msg_dict["key"], 
-        mtype = msg_dict["mtype"], 
+        command = msg_dict["command"],
+        key = msg_dict["key"],
+        mtype = msg_dict["mtype"],
         request_id = msg_dict["request_id"],
-        client_id = msg_dict["client_id"], 
-        client_request_id = msg_dict["client_request_id"], 
-        sender_id = msg_dict["sender_id"], 
-        value = msg_dict["value"], 
+        client_id = msg_dict["client_id"],
+        client_request_id = msg_dict["client_request_id"],
+        sender_id = msg_dict["sender_id"],
+        value = msg_dict["value"],
         received_propose_list = msg_dict["received_propose_list"]
     )
     return m

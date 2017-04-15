@@ -4,9 +4,9 @@ import random
 import sys
 
 # Configure command line options
-DEFAULT_NUM_FAILURES = 2
-DEFAULT_NUM_CLIENTS = 2
-DEFAULT_NUM_SHARDS = 2
+DEFAULT_NUM_FAILURES = 1
+DEFAULT_NUM_CLIENTS = 1
+DEFAULT_NUM_SHARDS = 1
 DEBUG = True
 SKIP = False
 CLIENT_PORTS_INFO = "client_ports.txt"

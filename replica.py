@@ -81,6 +81,7 @@ class Replica(object):
                 if command == 7:
                     if type(key) != list:
                         key = [key]
+                        value = [value]
                     for i,k in enumerate(key):
                         self.dic[k] = value[i]
                     print 'replica %d execute %s %s %s' % (self.uid , command , key , value)
