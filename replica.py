@@ -247,7 +247,8 @@ class Replica(object):
                     # broadcast message
                     self.request_mapping[(m.client_id , m.client_request_id)] = req_id
                     if self.skip:
-                        if req_id % 10 == 3:
+                        if req_id % 4 == 1:
+                            self.request_id += 1
                             return
                     self.broadcast_msg(msg)
                     # add req_id to mapping list

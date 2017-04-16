@@ -60,10 +60,10 @@ def distance(a , b):
 def consistent_hashing(val):
     # string to int
     #val = val#+str(time.time())
-    #idx = int(hashlib.sha1(val).hexdigest(), 16) % (max_)
-    #return idx #integer
-    val = int(val)
-    return val
+    idx = int(hashlib.sha1(val).hexdigest(), 16) % (max_)
+    return idx #integer
+    #val = int(val)
+    #return val
 
 def read_ports_info(filename, n):
 	s = {}
