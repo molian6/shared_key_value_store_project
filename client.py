@@ -61,13 +61,10 @@ class Client:
             all_data = self.client_listen_socket.recv(65535)
             m = decode_message(all_data)
             if m.command == 7:
-                print 'put(%s, %s) successfully!' % (m.key, m.value)
+                print 'put(%s, %s) successfully!' % (str(m.key), str(m.value))
             if m.command == 8:
-                print 'get(%s) successfully, value is %s!' % (m.key, m.value)
+                print 'get(%s) successfully, value is %s!' % (str(m.key), str(m.value))
             if m.command == 9:
-                if m.value == None:
-                    print 'delete(%s) successfully!' % (m.key)
-                else:
-                    print m.value
+                print 'delete(%s) (%s) successfully!' % (str(m.key) , str(m.value))
             if m.command == 10:
                 print 'addShard successfully!'

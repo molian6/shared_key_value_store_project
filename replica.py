@@ -79,23 +79,28 @@ class Replica(object):
             self.learned_list[req_id] = [command, key, value , True, client_id, client_request_id]
             if command != "NOOP":
                 #send logging message to client
+                if type(key) != list:
+                    key = [key]
+                    value = [value]
                 if command == 7:
-                    if type(key) != list:
-                        key = [key]
-                        value = [value]
                     for i,k in enumerate(key):
                         self.dic[k] = value[i]
                     print 'replica %d execute %s %s %s' % (self.uid , command , key , value)
                 elif command == 8:
-                    if key in self.dic.keys():
-                        value = self.dic[key]
-                    else:
-                        value = 'get error: key %s does not exist' % (key)
+                    value = []
+                    for i,k in enumerate(key):
+                        if k in self.dic.keys():
+                            value.append(self.dic[k])
+                        else:
+                            value.append('error')
                 elif command == 9:
-                    if key in self.dic.keys():
-                        del self.dic[key]
-                    else:
-                        value = 'delete error: key %s does not exist' % (key)
+                    value = []
+                    for i,k in enumerate(key):
+                        if k in self.dic.keys():
+                            value.append(self.dic[k])
+                            del self.dic[k]
+                        else:
+                            value.append('error')
                 elif command == 10:
                     del_val = []
                     del_key = []
@@ -200,6 +205,9 @@ class Replica(object):
         if self.debug: print 'handle_AcceptValue', m.client_id, m.client_request_id
         # if any value reach the majority, do logging
         # TODO: check if my change is correct
+        if type(m.key) != list:
+            m.key = [m.key]
+            m.value = [m.value]
         if (m.value != None):
             p = (m.request_id, m.command, tuple(m.key), tuple(m.value))
         else:

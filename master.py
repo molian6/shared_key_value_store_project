@@ -33,7 +33,7 @@ class Master(object):
 		for i in range(self.num_shard):
 			self.shard_view.append(0)
 			self.request_queue[i] = []
-			self.shard_pos[i] = consistent_hashing(str(i))
+			self.shard_pos[i] = consistent_hashing(str(i*10))
 			self.shard_next_timeout.append(self.start_timeout)
 
 		self.receive_socket = create_listen_sockets(self.master_port_info[0], self.master_port_info[1])
@@ -63,7 +63,7 @@ class Master(object):
 			self.request_queue[self.num_shard-1] = []
 			# new_shard_pos = consistent_hashing(str(self.num_shard - 1))
 			# shard_id = self.find_shard(new_shard_pos, self.num_shard - 1)
-			self.shard_pos[self.num_shard-1] = consistent_hashing(str(self.num_shard - 1))
+			self.shard_pos[self.num_shard-1] = consistent_hashing(str((self.num_shard - 1)*10))
 			self.shard_next_timeout.append(self.start_timeout)
 			# read new shard's ports into self.shard_port_info
 			self.shard_port_info.append(read_ports_info(m.key, self.num_failures*2+1))
