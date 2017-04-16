@@ -19,7 +19,7 @@ class Replica(object):
     skip = False
     dic = {} #key->value
 
-    num_followers = None
+    num_followers = 0
     last_exec_req = None
 
     def __init__(self, f, uid, ports_info, master_port_info, debug, skip):
@@ -214,8 +214,6 @@ class Replica(object):
             p = (m.request_id, m.command, tuple(m.key))
         # else:
             # p = (m.request_id, m.command, m.key, m.value)
-        print encode_message(m)
-        print p
         # TODO: p is (4, 10, [14038857730604155148L, 14018939169692461227L], None) and TypeError: unhashable type: 'list'
         if p not in self.request_count:
             self.request_count[p] = 1

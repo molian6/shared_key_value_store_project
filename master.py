@@ -126,10 +126,14 @@ class Master(object):
 	def handle_timeout(self , shard_id):
 		self.shard_next_timeout[shard_id] *= 2
 		self.shard_view[shard_id] += 1
+		print 'timeout' , shard_id, self.shard_view[shard_id]
+		if self.shard_view[shard_id] >= len(self.num_failures+1):
+			print 'shard %d exceeds the number of failures' % (shard_id)
+			return 
 		m = Message(mtype = 4 , sender_id = self.shard_view[shard_id])
 		self.broadcast(shard_id , m)
 		time.sleep(0.5)
-		m = self.request_queue[shard_id][0]
+		m = self.request_queue[shard_id][0][0]
 		self.send_request(shard_id , m)
 
 	def getTimeout(self):
@@ -154,4 +158,5 @@ class Master(object):
 	def broadcast(self , shard_id , m):
 		for key in self.shard_port_info[shard_id].keys():
 			v = self.shard_port_info[shard_id][key]
-			send_message(v[0], v[1], m)
+			print v
+			send_message(v[0], v[1], encode_message(m))
