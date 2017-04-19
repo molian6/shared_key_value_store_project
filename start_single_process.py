@@ -47,6 +47,10 @@ if __name__=="__main__":
 		if SKIP == 1: SKIP = True
 		else: SKIP = False
 
+	if DEFAULT_NUM_SHARDS == 0:
+		print "Cannot start the master with 0 shard!"
+		return
+
 	client_ports_info = read_ports_info(CLIENT_PORTS_INFO , DEFAULT_NUM_CLIENTS)
 	server_ports_info = read_ports_info(SERVER_PORTS_INFO , 2*DEFAULT_NUM_FAILURES+1)
 	master_ports_info = read_ports_info(MASTER_PORTS_INFO , 1)
@@ -69,8 +73,6 @@ if __name__=="__main__":
 
 	# start client
 	elif START_TYPE == 3:
-		#e = multiprocessing.Event()
-		#p = multiprocessing.Process(target = client.Client , args = (client_ports_info[i][0] , client_ports_info[i][1], i , master_ports_info[0] , e))
 		client = client.Client(client_ports_info[i][0] , client_ports_info[i][1], i , master_ports_info[0])
 		print "start client %d" % (i)
 		while True:
@@ -80,4 +82,3 @@ if __name__=="__main__":
 				print 'Quit client'
 				break
 			client.send_request(command)
-			#print 'Client %d is waiting for responce of the previous message.'

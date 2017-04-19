@@ -23,9 +23,6 @@ class Master(object):
 
 	def __init__(self , shard_port_info , client_port_info , master_port_info, num_failures):
 		self.shard_port_info = shard_port_info
-		if shard_port_info == None:
-			# if there is no shard, add a new shard
-			self.handle_request(Message(mtype=5 , command = 10))
 		self.client_port_info = client_port_info
 		self.master_port_info = master_port_info
 		self.num_failures = num_failures
