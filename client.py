@@ -58,7 +58,7 @@ class Client:
                 if command <= 6: command = 7
                 if command == 7:
                     key = int(np.random.rand()*math.pow(2,64)-1)
-                    key = str(key)+str(time.time())
+                    key = chr(ord('a')+key%26)+str(time.time())
                     key_list.append(key)
                     value = int(np.random.rand()*math.pow(2,64)-1)
                     value = 'x'+str(value)

@@ -36,7 +36,6 @@ class Master(object):
 		self.receive_socket = create_listen_sockets(self.master_port_info[0], self.master_port_info[1])
 		while True:
 			timeout_shard , nextTimeout = self.getTimeout()
-			print timeout_shard , nextTimeout
 			self.receive_socket.settimeout(nextTimeout)
 			try:
 				all_data = self.receive_socket.recv(65535)
@@ -60,7 +59,9 @@ class Master(object):
 			self.request_queue[self.num_shard-1] = []
 			# new_shard_pos = consistent_hashing(str(self.num_shard - 1))
 			# shard_id = self.find_shard(new_shard_pos, self.num_shard - 1)
-			self.shard_pos[self.num_shard-1] = consistent_hashing(str((self.num_shard - 1)+str(time.time())))
+			self.shard_pos[self.num_shard-1] = consistent_hashing(chr(ord('a')+(self.num_shard - 1))+str(time.time()))
+			for i in range(self.num_shard):
+				print ('shard position %d %d' % (i , self.shard_pos[i]))
 			self.shard_next_timeout.append(self.start_timeout)
 			# read new shard's ports into self.shard_port_info
 			self.shard_port_info.append(read_ports_info(m.key, self.num_failures*2+1))
@@ -81,13 +82,13 @@ class Master(object):
 			pos = consistent_hashing(m.key)
 			shard_id = self.find_shard(pos, self.num_shard)
 
-		print "shard_id is %d" %shard_id
+		#print "shard_id is %d" %shard_id
 		m.client_request_id = self.req_id
 		self.request_queue[shard_id].append([m ,self.req_id])
 		self.req_to_shard_map[self.req_id] = shard_id
 		self.req_id += 1
    		if len(self.request_queue[shard_id]) == 1:
-			print "executed immediately"
+			#print "executed immediately"
    			self.send_request(shard_id , m)
 
 	def handle_response(self , m):
@@ -116,7 +117,7 @@ class Master(object):
 
 	def send_request(self , shard_id , m):
 		v = self.shard_port_info[shard_id][self.shard_view[shard_id]]
-		print shard_id, m, v
+		#print shard_id, m, v
 		send_message(v[0], v[1], encode_message(m))
 		self.timeout_sheet[shard_id] = time.time() + self.shard_next_timeout[shard_id]
 
@@ -155,5 +156,4 @@ class Master(object):
 	def broadcast(self , shard_id , m):
 		for key in self.shard_port_info[shard_id].keys():
 			v = self.shard_port_info[shard_id][key]
-			print v
 			send_message(v[0], v[1], encode_message(m))

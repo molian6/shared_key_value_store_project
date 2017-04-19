@@ -1,5 +1,5 @@
 import socket
-import ruamel_yaml as yaml
+import ruamel.yaml as yaml
 import json
 import time
 import random

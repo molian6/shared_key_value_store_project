@@ -8,7 +8,7 @@ from helper import *
 DEFAULT_NUM_FAILURES = 1
 DEFAULT_NUM_CLIENTS = 1
 DEFAULT_NUM_SHARDS = 1
-DEBUG = True
+DEBUG = False
 SKIP = False
 CLIENT_PORTS_INFO = "client_ports.txt"
 SERVER_PORTS_INFO = "server_ports_0.txt"
@@ -49,7 +49,7 @@ if __name__=="__main__":
 
 	if DEFAULT_NUM_SHARDS == 0:
 		print "Cannot start the master with 0 shard!"
-		return
+		exit(0)
 
 	client_ports_info = read_ports_info(CLIENT_PORTS_INFO , DEFAULT_NUM_CLIENTS)
 	server_ports_info = read_ports_info(SERVER_PORTS_INFO , 2*DEFAULT_NUM_FAILURES+1)

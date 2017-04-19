@@ -47,7 +47,6 @@ class Replica(object):
             print 'in-memory dictionary status:', self.dic
             all_data = self.receive_socket.recv(65535)
             msg = all_data
-            print all_data
             self.handle_message(decode_message(msg))
 
     def handle_message(self, m):
@@ -204,7 +203,6 @@ class Replica(object):
     def handle_AcceptValue(self, m):
         if self.debug: print 'handle_AcceptValue', m.client_id, m.client_request_id
         # if any value reach the majority, do logging
-        # TODO: check if my change is correct
         if type(m.key) != list:
             m.key = [m.key]
             m.value = [m.value]
@@ -214,7 +212,6 @@ class Replica(object):
             p = (m.request_id, m.command, tuple(m.key))
         # else:
             # p = (m.request_id, m.command, m.key, m.value)
-        # TODO: p is (4, 10, [14038857730604155148L, 14018939169692461227L], None) and TypeError: unhashable type: 'list'
         if p not in self.request_count:
             self.request_count[p] = 1
         else:
